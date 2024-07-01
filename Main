@@ -1,0 +1,57 @@
+local rank = "Mod"
+local rankType = "Server"
+local successColor = Color3.fromRGB(0,255,0)
+local errorColor = Color3.fromRGB(255,0,0)
+local players = game:GetService("Players")
+local tweenService = game:GetService("TweenService")
+local debris = game:GetService("Debris")
+local hdMain = require(game:GetService("ReplicatedStorage"):WaitForChild("HDAdminSetup")):GetMain()
+local hd = hdMain:GetModule("API")
+local rankId = tonumber(rank) or hd:GetRankId(rank)
+local rankName = hd:GetRankName(rankId)
+for a,b in pairs(script.Parent:GetChildren()) do
+	local touchPart = b:FindFirstChild("TouchPart")
+	if touchPart then
+		local touchDe = {}
+		local originalColor = touchPart.Color
+		local particles = touchPart.Particles
+		touchPart.Touched:Connect(function(hit)
+			local character = hit.Parent
+			local player = players:GetPlayerFromCharacter(character)
+			if player and not touchDe[player] then
+				touchDe[player] = true
+				local plrRankId, plrRankName, plrRankType = hd:GetRank(player)
+				local newColor = errorColor
+				if plrRankId < rankId then
+					hd:SetRank(player, rankId, rankType)
+					newColor = successColor
+				else
+					local errorMessage = "Your rank is already higher than '"..rankName.."'!"
+					if plrRankId == rankId then
+						errorMessage = "You've already been ranked to '"..rankName.."'!"
+					end
+					hd:Error(player, errorMessage)
+				end
+				touchPart.Color = newColor
+				if newColor == successColor then
+					local hrp = character:FindFirstChild("HumanoidRootPart")
+					if hrp and particles then
+						local particlesClone = particles:Clone()
+						debris:AddItem(particlesClone, 3)
+						particlesClone.Parent = hrp
+						for _, effect in pairs(particlesClone:GetChildren()) do
+							effect:Emit(2)
+						end
+					end
+				end
+				local tween = tweenService:Create(touchPart, TweenInfo.new(2), {Color = originalColor})
+				tween:Play()
+				tween.Completed:Wait()
+				touchDe[player] = false
+			end
+		end)
+	end
+end
+
+
+
